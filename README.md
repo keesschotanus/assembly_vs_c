@@ -185,3 +185,17 @@ main:
 ```
 The compiler sees that the results are never used so it never generates code for it.
 To prevent this problem, make sure the second printf statement is not commented out!
+
+## Optimizing the Assembly code
+A good place to start is to see what assembly code the compiler produces.
+I included the second printf statement and used x86-64 gcc 11.2 with the -O3 option.
+Here is the output on 
+<a href="https://godbolt.org/#z:OYLghAFBqd5QCxAYwPYBMCmBRdBLAF1QCcAaPECAMzwBtMA7AQwFtMQByARg9KtQYEAysib0QXACx8BBAKoBnTAAUAHpwAMvAFYTStJg1DIApACYAQuYukl9ZATwDKjdAGFUtAK4sGIMwCspK4AMngMmAByPgBGmMQSAJykAA6oCoRODB7evv5BaRmOAmER0SxxCVzJdpgOWUIETMQEOT5%2BgbaY9sUMjc0EpVGx8Um2TS1teZ0KE4PhwxWj1QCUtqhexMjsHOYAzOHI3lgA1CZ7brP4qAB0COfYJhoAgk/P4QQnLEzhECtvJgA7FYXicwScvAwMsAIugTrQBMAvkxVLNMCkFGc9gARE4aELnEHPcEnfjEE4QSHQ2HwxEnPBY3FcQn0rFuc5MjRc7lclnWax4f6g8FAokkklUvAwzBwhFGE5ojGMvEEvZi8VgyXS2V04iYBReWifDn0wlvDVggDuCDomApeoNRpOYDAJq4ISFxItovNFpJ/MsioUZuFfrBDsNxpxJwjTvMAROZixADEY/rIycAFQnPYhM6WE7uk4gNOOqOPPbYQshr1hk4AenrJxSxA%2BVAg5jM5UqJfj3lIpcjvcC3hMATcDE7A7wA9jBH%2Bat9GqB2KX4rwVApQaxVe%2BqII6IUnr9PtDYb325NQZrdbBLbbHbMZj7XgHL7HE6n9IHF4PGIX6rLoCq5nv6Z4rgCwEcGstCcAEvB%2BBwWikKgnDspY1gKhsWx2vsPCkAQmjQWsADWIABBo%2BicJICFEShnC8AoICUYRSHQaQcCwEgaAsCktpkBQEA8Xx9AJMAXBcGYfB0AexBMRAMR0TE4TNAAnpw%2BE8WwggAPIMLQ6lsaQWDfEY4hGfger1AAbvqdGYKodReAeGm8B83R0bQeAxMQakeFgdEEK2LCuWsVAGMACgAGp4Jglo6SkjCuTIggiGI7BSCl8hKGodG6Fw%2BiGMYAY2F5MRMZAayoCkvRMRwAC0Ol7Ix3R1L0LgMO4njtP4lGhAs3ajJIABsqTpJkAhTB0lGFBNDBDINCQjV0PQNHMU16LU9QCP0LQLSMVTjAMG0FbMAz7UsVRrAo2HbHoQWYDsPAwXBtFGahHCqAAHMN9XDZIJzAMgyCFlwNxJhA6FWJYA64IQJD5nsBUnB4vH8YjXArLwrFaCspHkZRsEcDRpCIchH2McxBFEXjVEcGYb3kwx1NsbTtlyVkICSEAA%3D">Assembly code on godbolt</a>
+
+As you can see the compiler knows that a ```xor edx, edx``` sets edx to zero,
+but faster than ```mov edx, 0``` would do.
+It even knows not to multiply by 3 and adding 1, by executing: ```lea rax, [rax+1+rax*2]```
+
+Quite impressive!
+It makes me want to give up on assembly and stick to C!
+
