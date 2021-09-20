@@ -178,7 +178,16 @@ The C code is slightly faster now than the assembly code.
     - Using some standard techniques like using xor to set a value to 0.
 
 Note: Using the -O3 option with gcc 11 results in the following assembly code:
-```
+```bits	64
+extern	printf
+
+section .data
+	pformat: db "Number: %lu, steps: %lu", 0xa, 0
+
+section .text
+global main
+main:
+
 main:
         xor     eax, eax
         ret
@@ -199,3 +208,93 @@ It even knows not to multiply by 3 and adding 1, by executing: ```lea rax, [rax+
 Quite impressive!
 It makes me want to give up on assembly and stick to C!
 
+# Assembly part II
+
+To resolve some of the performance issue and to be able to print the result,
+I made a new file named collatzp.asm.
+See below.
+
+```assembly
+bits	64                  ; explicitly use 64 bits
+extern	printf              ; so I can use printf
+
+section .data
+	pformat: db "Number: %lu, steps: %lu", 0xa, 0
+
+section .text
+global main                 ; C programs expect main
+main:                       ; Now uses registers that are preserved by function calls
+	xor		r12,r12			; number to process
+	xor 	r13,r13			; maximum number of steps
+
+forEachNumber:
+	inc		r12
+	cmp		r12,100000000	; compare to max number to process
+	ja		end
+
+	xor		r14,r14			; number of steps
+	mov		r15,r12			; r15 contains the result of Collatz' computation	
+
+whileResultNotOne:
+	cmp		r15,1
+	je		endWhileResultNotOne
+
+	inc		r14				; Increment number of steps
+
+	test	r15b,1
+	jz		even
+	; Result is odd
+
+	mov		rax,r15
+	shl		rax,1			; Multiply by 2
+	add		rax,r15			; add self to effectively multiply by 3
+	inc		rax
+	mov		r15,rax
+
+	; result will now always be even
+	inc		r14             ; Increment number of steps
+even:
+	shr		r15,1
+	jmp		whileResultNotOne
+
+endWhileResultNotOne:
+	cmp		r14,r13
+	jle		forEachNumber
+
+	mov		r13,r14
+	; Print the new high number of steps
+	mov		rdx,r13
+	mov		rsi,r12
+	mov		rdi,pformat
+	xor		rax,rax         ; no floating point arguments
+
+    call	printf
+  	jmp		forEachNumber
+
+end:
+	mov		eax,1			; sys_exit
+	xor		ebx,ebx			; exit code 0
+	int		0x80			; call kernel
+
+```
+
+## Compiling the code
+
+The following statements were used to compile and run
+```
+nasm -g -f elf64 collatzp.asm
+gcc -no-pie collatzp.o -o collatz
+./collatz
+```
+
+Since the C-library is used gcc is used to create the output file.
+The program now takes: 0m21,410s to execute while the C program,
+with the print takes 0m25,992s.
+Not a completely fair comparison due to the fact that the assembly
+code falls through from an odd number to an even number, skipping
+the superfluous check.
+
+# Conclusion
+
+For a newbie at X86_64 assembly code, 
+it looks like it is really hard to beat optimized C code!
