@@ -6,7 +6,7 @@ which had a <a href="https://en.wikipedia.org/wiki/Zilog_Z80">Z80</a>
 CPU running at 1,78MHz.
 
 After that I never tried assembly programming until now (Sep 2021).
-This time using a Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz running Linux.
+This time using an Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz running Linux.
 
 ## The challenge
 
