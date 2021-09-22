@@ -298,3 +298,15 @@ the superfluous check.
 
 For a newbie at X86_64 assembly code, 
 it looks like it is really hard to beat optimized C code!
+
+## Optimizing the C code
+
+Since the assembly code was optimized, for example by making use
+of the fact that a number multiplied by 3 and adding 1, is always even,
+the C code could be optimized as well.
+See the collatz.c source for the final version.
+
+The program run in: 0m20,703
+making it faster again than the assembly version.
+This again is proof that the compiler is way more knowledgeable on assembly
+than I am.

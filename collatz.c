@@ -9,9 +9,16 @@ int main()
         unsigned long result = i;
         while (result != 1L)
         {
-            ++steps;
-            result = result % 2 ? result * 3L + 1L : result >> 1;
-            // printf("Number: %lu, result: %lu\n", i, result);
+            if (result & 1LU)
+            {
+                // multiplying by 3 and adding 1 a number is always even
+                result = (result * 3L + 1L) >> 1;
+                steps += 2;
+            } else
+            {
+                ++steps;
+                result >>= 1;
+            }
         }
         if (steps > maxsteps)
         {

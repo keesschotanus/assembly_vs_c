@@ -37,7 +37,7 @@ even:
 	jmp		whileResultNotOne
 
 endWhileResultNotOne:
-	cmp		r10,		r9
+	cmp		r10,	r9
 	jle		forEachNumber
 
 	mov		r9,		r10
