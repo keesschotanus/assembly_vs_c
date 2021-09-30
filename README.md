@@ -306,7 +306,15 @@ of the fact that a number multiplied by 3 and adding 1, is always even,
 the C code could be optimized as well.
 See the collatz.c source for the final version.
 
-The program run in: 0m20,703
+The program runs in: 0m20,703
 making it faster again than the assembly version.
 This again is proof that the compiler is way more knowledgeable on assembly
 than I am.
+
+# What about Java
+
+I created a Java version from the C code.
+The program runs in: 0m24,369.
+Using: openjdk version "11.0.11" 2021-04-20
+
+Not bad considering Java is interpreted (but uses a JIT).
