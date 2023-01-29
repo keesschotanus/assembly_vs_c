@@ -7,12 +7,15 @@ CPU running at 1,78MHz.
 
 After that I never tried assembly programming until now (Sep 2021).
 This time using an Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz running Linux.
+The machine I ran this code on broke, so now I am adding the results
+for my new machine that has an Intel(R) Core(TM) i7-13700 CPU @ 5.2GHz,
+running Linux as always.
 
 ## The challenge
 
 Write some simple code, first in C and then translate the C code,
 manually to X86_64 assembly code. Then measure the speed of both programs.
-Don't do any non obvious optimization at first.
+Don't do any optimization at first.
 
 Since I'm quite new to this I selected a simple algorithm.
 It is called <a href="https://en.wikipedia.org/wiki/Collatz_conjecture">Collatz Conjecture</a>.
@@ -24,11 +27,13 @@ while (n <> 1)
     else
         n = n * 3 + 1
 ```
-Collatz promises me this code will never loop endlessly
+Collatz promises me this code will never loop endlessly,
+since the result will always end with 1.
 
 ** The C Code
 
 Here is the algorithm implemented in C for the first 100000000 numbers.
+The source is named c/collatz-no-optimization.c
 
 ```c
 #include <stdio.h>
@@ -49,11 +54,13 @@ int main()
         if (steps > maxsteps)
         {
             maxsteps = steps;
-            // printf("%lu, %lu\n", i, maxsteps);
+            printf("%lu, %lu\n", i, maxsteps);
         }
-        
     }
 }
+```
+The code was compiled using: gcc version 11.3.0 (Ubuntu 11.3.0-1ubuntu1~22.04),
+with the command: ```gcc collatz-no-optimization.c -o collatz-no-optimization```
 ```
 
 Here is a summary of the output the program produces:
@@ -71,18 +78,11 @@ Here is a summary of the output the program produces:
 ```
 As you can see, the number of steps rises gradually.
 
-The most obvious optimazation would be to compile with -O1, -O2 or -O3.
-Another obvious optimization may be to use result & 1 instead of result % 2.
-Less obvious may be that:
-```result * 3L + 1L``` might be replaced with ```result << 1 + result```.
-
-Not sure if using the register keyword may improve performance.
-But as promised, I did not do any optimization, except maybe for using a shift
-for division by 2.
-
 ## The Assembly Code
 
 Keep in mind that I did not write any assembly code in this millennium!
+And the code I wrote in the previous millennium was for a 8 bit 1,78Mhz
+processor.
 
 ```assembly
 global _start
@@ -92,93 +92,124 @@ section .data
 section .text
 
 _start:
-	mov	r8,	0			; number to process
-	mov 	r9,	0			; maximum number of steps
+	mov		r8,		0			; number to process
+	mov		r9,		0			; maximum number of steps
 
 forEachNumber:
-	inc	r8
-	cmp	r8,	100000000		; compare to max number to process
-	ja	end
+	inc		r8
+	cmp		r8,		100000000	; compare to max number to process
+	ja		end
 
-	mov	r10,	0			; number of steps
-	mov	r11,	r8			; r11 contains the result of Collatz' computation	
+	mov		r10,	0			; number of steps
+	mov		r11,	r8			; r11 contains the result of Collatz' computation	
 
 whileResultNotOne:
-	cmp	r11,	1
-	je	endWhileResultNotOne
+	cmp		r11,	1
+	je		endWhileResultNotOne
 
-	inc	r10				; Increment number of steps
+	inc		r10					; Increment number of steps
 
 	test	r11b,	1
 	jz		even
 	; Result is odd
 
-	mov	rax,	r11
+	mov		rax,	r11
 	imul	rax,	3
-	inc	rax
-	mov	r11,	rax
+	inc		rax
+	mov		r11,	rax
 
-	jmp	whileResultNotOne
+	jmp		whileResultNotOne
 even:
-	shr	r11,	1
-	jmp	whileResultNotOne
+	shr		r11,	1
+	jmp		whileResultNotOne
 
 endWhileResultNotOne:
-	cmp	r10,	r9
-	jle	forEachNumber
+	cmp		r10,	r9
+	jle		forEachNumber
 
-	mov	r9,	r10
-  	jmp	forEachNumber
+	mov		r9,		r10
+  	jmp		forEachNumber
 
 end:
-	mov	eax,	1			; sys_exit
-	mov	ebx,	0			; exit code
-	int	0x80				; call kernel
+	mov		eax,	1			; sys_exit
+	mov		ebx,	0			; exit code
+	int		0x80				; call kernel
 ````
 
 Obviously I used a shift to divide by 2 as is common in assembly language.
 The test for an even number is performed by looking at the least significant bit
 using a test instruction but other than that no optimization has been applied.
 
-
-### Comparing the results
-
-The C program was compiled using: gcc (Ubuntu 9.3.0-17ubuntu1~20.04) 9.3.0,
-with the command: ```gcc collatz.c -o collatz```
-The assembly program using:
+The assembly program was assembled using:
 ```
 nasm -f elf64 collatz.asm -o collatz.o
 ld -m elf_x86_64 collatz.o -o collatz
 ```
 
-| Code         | Duration      |
-|--------------|---------------|
-| C            | 0m49,521s     |
-| Assembly     | **0m23,994s** |
+### Comparing the results
 
-As you can see the assembly code is twice as fast!
-Now let's compile the C code with aggressive optimazation (-O3).
+| Code         | Duration 6700K | Duration 13700 |
+|--------------|----------------|----------------|
+| C            | 0m49,521s      | 0m29,050s      |
+| Assembly     | **0m23,994s**  | **0m18,935**   |
 
-| Code         | Duration      |
-|--------------|---------------|
-| C            | 0m49,521s     |
-| C -O3        | **0m23,164s** |
-| Assembly     | 0m23,994s     |
+As you can see the assembly code is way faster, just as I expected.
+Now let's compile the C code with aggressive optimization (-O3).
 
-The C code is slightly faster now than the assembly code.
+| Code         | Duration 6700K | Duration 13700 |
+|--------------|----------------|----------------|
+| C            | 0m49,521s      | 0m29,050s      |
+| C -O3        | **0m23,164s**  | **0m16,443s**  |
+| Assembly     | 0m23,994s      | 0m18,935       |
+
+The C code compiled with aggressive optimization is slightly faster
+on the 6700K processor than the code written in assembly,
+but way faster on the 13700 processor.
 
 ## Conclusion
 
 - C compilers are pretty amazing
 - My assembly skills are bad
 
-- I need to optimize the assembly code
-    - By looking at the assembly code the compiler generates
-        - Using <a href="https://godbolt.org/">Compiler Explorer</a> for example
-    - Using some standard techniques like using xor to set a value to 0.
+It is obvious that the code generated by the C compiler is way better than mine.
+I should be able to learn a thing or two from the generated assembly code.
+To locally inspect the code the compiler generates, compile using this command:
+```gcc -S -O3 collatz-not-optimized.c -o collatz-not-optimized.asm```
 
-Note: Using the -O3 option with gcc 11 results in the following assembly code:
-```bits	64
+Alternatively you can upload the C code to [godbolt.org](https://godbolt.org),
+and then generate the assembly code using: ```x86-64 gcc 11.2 -O3```
+
+Click [here](https://godbolt.org/#z:OYLghAFBqd5QCxAYwPYBMCmBRdBLAF1QCcAaPECAMzwBtMA7AQwFtMQByARg9KtQYEAysib0QXACx8BBAKoBnTAAUAHpwAMvAFYTStJg1DIApACYAQuYukl9ZATwDKjdAGFUtAK4sGIMwCspK4AMngMmAByPgBGmMQSAJykAA6oCoRODB7evv5BaRmOAmER0SxxCVzJdpgOWUIETMQEOT5%2BgbaY9sUMjc0EpVGx8Um2TS1teZ0KE4PhwxWj1QCUtqhexMjsHOYAzOHI3lgA1CZ7brP4qAB0COfYJhoAgk/P4QQnLEzhECtvJgA7FYXicwScvAwMsAIugTrQBMAvkxVLNMCkFGc9gARE4aELnEHPcEnfjEE4QSHQ2HwxEnPBY3FcQn0rFuc5MjRc7lclnWax4f6g8FAokkklUvAwzBwhFGE5ojGMvEEvZi8VgyXS2V04iYBReWifDn0wlvDVggDuCDomApeoNRpOYDAJq4ISFxItovNFpJ/MsioUZuFfrBDsNxpxJwjTvMAROZixADEY/rIycAFQnPYhM6WE7uk4gNOOqOPPbYQshr1hk4AenrJxSxA%2BVAg5jM5UqJfj3lIpcjvcC3hMATcDE7A7wA9jBH%2Bat9GqB2KX4rwVApQaxVe%2BqII6IUnr9PtDYb325NQZrdbBLbbHbMZj7XgHL7HE6n9IHF4PGIX6rLoCq5nv6Z4rgCwEcGstCcAEvB%2BBwWikKgnDspY1gKhsWx2vsPCkAQmjQWsADWIABBo%2BicJICFEShnC8AoICUYRSHQaQcCwEgaAsCktpkBQEA8Xx9AJMAXBcGYfB0AexBMRAMR0TE4TNAAnpw%2BE8WwggAPIMLQ6lsaQWDfEY4hGfger1AAbvqdGYKodReAeGm8B83R0bQeAxMQakeFgdEEK2LCuWsVAGMACgAGp4Jglo6SkjCuTIggiGI7BSCl8hKGodG6Fw%2BiGMYAY2F5MRMZAayoCkvRMRwAC0Ol7Ix3R1L0LgMO4njtP4lGhAs3ajJIABsqTpJkAhTB0lGFBNDBDINCQjV0PQNHMU16LU9QCP0LQLSMVTjAMG0FbMAz7UsVRrAo2HbHoQWYDsPAwXBtFGahHCqAAHMN9XDZIJzAMgyCFlwNxJhA6FWJYA64IQJD5nsBUnB4vH8YjXArLwrFaCspHkZRsEcDRpCIchH2McxBFEXjVEcGYb3kwx1NsbTtlyVkICSEAA%3D) to see the C and assembly code side by side.
+
+
+## Analyzing the code
+
+The first thing to notice is that instead of setting a register to zero,
+the compiler uses ```xor edx, edx``` to set edx to zero, 
+where I used ```mov edx, 0```.
+Using xor turns out to be faster and can be used in multiple places.
+
+The second thing to notice is that the compiler generates this code,
+to multiply by 3 and add 1: ```lea rax, [rax+1+rax*2]```
+
+Quite impressive!
+It makes me want to give up on assembly and stick to C!
+
+What is not so obvious is that for every odd number, multiplied by 3 
+and adding one to it, the result will be even.
+So in the next step it would be divided by 2.
+The compiler would never optimize this, but we can.
+
+# Assembly part II
+
+Let's use our knowledge to improve the assembly code.
+In the process let's see if we can print the maximum number of steps it takes
+to reach the number 1.
+
+See below.
+
+```assembly
+bits	64
 extern	printf
 
 section .data
@@ -187,134 +218,136 @@ section .data
 section .text
 global main
 main:
-
-main:
-        xor     eax, eax
-        ret
-```
-The compiler sees that the results are never used so it never generates code for it.
-To prevent this problem, make sure the second printf statement is not commented out!
-
-## Optimizing the Assembly code
-A good place to start is to see what assembly code the compiler produces.
-I included the second printf statement and used x86-64 gcc 11.2 with the -O3 option.
-Here is the output on 
-<a href="https://godbolt.org/#z:OYLghAFBqd5QCxAYwPYBMCmBRdBLAF1QCcAaPECAMzwBtMA7AQwFtMQByARg9KtQYEAysib0QXACx8BBAKoBnTAAUAHpwAMvAFYTStJg1DIApACYAQuYukl9ZATwDKjdAGFUtAK4sGIMwCspK4AMngMmAByPgBGmMQSAJykAA6oCoRODB7evv5BaRmOAmER0SxxCVzJdpgOWUIETMQEOT5%2BgbaY9sUMjc0EpVGx8Um2TS1teZ0KE4PhwxWj1QCUtqhexMjsHOYAzOHI3lgA1CZ7brP4qAB0COfYJhoAgk/P4QQnLEzhECtvJgA7FYXicwScvAwMsAIugTrQBMAvkxVLNMCkFGc9gARE4aELnEHPcEnfjEE4QSHQ2HwxEnPBY3FcQn0rFuc5MjRc7lclnWax4f6g8FAokkklUvAwzBwhFGE5ojGMvEEvZi8VgyXS2V04iYBReWifDn0wlvDVggDuCDomApeoNRpOYDAJq4ISFxItovNFpJ/MsioUZuFfrBDsNxpxJwjTvMAROZixADEY/rIycAFQnPYhM6WE7uk4gNOOqOPPbYQshr1hk4AenrJxSxA%2BVAg5jM5UqJfj3lIpcjvcC3hMATcDE7A7wA9jBH%2Bat9GqB2KX4rwVApQaxVe%2BqII6IUnr9PtDYb325NQZrdbBLbbHbMZj7XgHL7HE6n9IHF4PGIX6rLoCq5nv6Z4rgCwEcGstCcAEvB%2BBwWikKgnDspY1gKhsWx2vsPCkAQmjQWsADWIABBo%2BicJICFEShnC8AoICUYRSHQaQcCwEgaAsCktpkBQEA8Xx9AJMAXBcGYfB0AexBMRAMR0TE4TNAAnpw%2BE8WwggAPIMLQ6lsaQWDfEY4hGfger1AAbvqdGYKodReAeGm8B83R0bQeAxMQakeFgdEEK2LCuWsVAGMACgAGp4Jglo6SkjCuTIggiGI7BSCl8hKGodG6Fw%2BiGMYAY2F5MRMZAayoCkvRMRwAC0Ol7Ix3R1L0LgMO4njtP4lGhAs3ajJIABsqTpJkAhTB0lGFBNDBDINCQjV0PQNHMU16LU9QCP0LQLSMVTjAMG0FbMAz7UsVRrAo2HbHoQWYDsPAwXBtFGahHCqAAHMN9XDZIJzAMgyCFlwNxJhA6FWJYA64IQJD5nsBUnB4vH8YjXArLwrFaCspHkZRsEcDRpCIchH2McxBFEXjVEcGYb3kwx1NsbTtlyVkICSEAA%3D">Assembly code on godbolt</a>
-
-As you can see the compiler knows that a ```xor edx, edx``` sets edx to zero,
-but faster than ```mov edx, 0``` would do.
-It even knows not to multiply by 3 and adding 1, by executing: ```lea rax, [rax+1+rax*2]```
-
-Quite impressive!
-It makes me want to give up on assembly and stick to C!
-
-# Assembly part II
-
-To resolve some of the performance issue and to be able to print the result,
-I made a new file named collatzp.asm.
-See below.
-
-```assembly
-bits	64                  	; explicitly use 64 bits
-extern	printf              	; so I can use printf
-
-section .data
-	pformat: db "Number: %lu, steps: %lu", 0xa, 0
-
-section .text
-global main                 	; C programs expect main
-main:                       	; Now uses registers that are preserved by function calls
-	xor	r12,r12		; number to process
-	xor 	r13,r13		; maximum number of steps
+	xor		r12,	r12			; number to process
+	xor 	r13,	r13			; maximum number of steps
 
 forEachNumber:
-	inc	r12
-	cmp	r12,100000000	; compare to max number to process
-	ja	end
+	inc		r12
+	cmp		r12,	100000000	; compare to max number to process
+	ja		end
 
-	xor	r14,r14		; number of steps
-	mov	r15,r12		; r15 contains the result of Collatz' computation	
+	xor		r14,	r14			; number of steps
+	mov		r15,	r12			; r15 contains the result of Collatz' computation	
 
 whileResultNotOne:
-	cmp	r15,1
-	je	endWhileResultNotOne
+	cmp		r15,	1
+	je		endWhileResultNotOne
 
-	inc	r14		; Increment number of steps
+	inc		r14					; Increment number of steps
 
-	test	r15b,1
-	jz	even
+	test	r15b,	1
+	jz		even
 	; Result is odd
 
-	mov	rax,r15
-	shl	rax,1		; Multiply by 2
-	add	rax,r15		; add self to effectively multiply by 3
-	inc	rax
-	mov	r15,rax
+	mov		rax,	r15
+	shl		rax,	1			; Multiply by 2
+	add		rax,	r15			; add self to effectively multiply by 3
+	inc		rax
+	mov		r15,	rax
 
 	; result will now always be even
-	inc	r14             ; Increment number of steps
+	inc		r14
 even:
-	shr	r15,1
-	jmp	whileResultNotOne
+	shr		r15,	1
+	jmp		whileResultNotOne
 
 endWhileResultNotOne:
-	cmp	r14,r13
-	jle	forEachNumber
+	cmp		r14,	r13
+	jle		forEachNumber
 
-	mov	r13,r14
+	mov		r13,	r14
 	; Print the new high number of steps
-	mov	rdx,r13
-	mov	rsi,r12
-	mov	rdi,pformat
-	xor	rax,rax         ; no floating point arguments
+	push	rbx					; Aligns the code on 16bytes
 
-    	call	printf
-  	jmp	forEachNumber
+	mov		rdx,	r13
+	mov		rsi,	r12
+	mov		rdi,	pformat
+	xor		rax,	rax			; no floating point arguments
+
+    call	printf
+	pop		rbx
+  	jmp		forEachNumber
 
 end:
-	mov	eax,1		; sys_exit
-	xor	ebx,ebx		; exit code 0
-	int	0x80		; call kernel
-
+	mov		eax,	1			; sys_exit
+	xor		ebx,	ebx			; exit code 0
+	int		0x80				; call kernel
 ```
 
-## Compiling the code
+Note: The previous assembly code ran just fine.
+The code with the call to printf in it gave a segmentation fault.
+Turns out that you have to align on a 16byte boundary.
+This is where the ```push rbx``` comes in before the call to printf 
+and the ```pop rbx```, just after the call to printf.
 
-The following statements were used to compile and run
+## C code part II
+
+It is only fair to apply some of the optimizations to the C code.
+Here is the final version named: collatz-optimized.c
+
+```C
+#include <stdio.h>
+
+int main()
+{
+    unsigned long maxsteps = 0L;
+    for (unsigned long i = 1; i <= 100000000; ++i)
+    {
+        unsigned long steps = 0L;
+        unsigned long result = i;
+        while (result != 1L)
+        {
+            if (result & 1LU)
+            {
+                // multiplying by 3 and adding 1 a number is always even
+                result = (result * 3L + 1L) >> 1;
+                steps += 2;
+            } else
+            {
+                ++steps;
+                result >>= 1;
+            }
+        }
+        if (steps > maxsteps)
+        {
+            maxsteps = steps;
+            printf("Number: %lu, steps: %lu\n", i, maxsteps);
+        }
+        
+    }
+}
+```
+
+## Compiling the code and verifying the results
+
+The following statements were used to compile and run the assembly code
 ```
 nasm -g -f elf64 collatzp.asm
-gcc -no-pie collatzp.o -o collatz
-./collatz
+gcc -no-pie collatzp.o -o collatzp
+time ./collatzp
 ```
 
-Since the C-library is used gcc is used to create the output file.
-The program now takes: 0m21,410s to execute while the C program,
-with the print takes 0m25,992s.
-Not a completely fair comparison due to the fact that the assembly
-code falls through from an odd number to an even number, skipping
-the superfluous check.
+The C code was compiled using
+```bash
+gcc -O3 collatz-optimized.c -o collatz-optimized
+time ./collatz-optimized
+```
 
-# Conclusion
+### Comparing the results
 
+| Optimized Code | Duration 6700K | Duration 13700 |
+|----------------|----------------|----------------|
+| C              | **0m20,703**   | **0m14,690s**  |
+| Assembly       | 0m21,410s      | 0m16,778s      |
+
+Again the optimized C code is slightly faster than the hand-written assembly code.
 For a newbie at X86_64 assembly code, 
 it looks like it is really hard to beat optimized C code!
 
-## Optimizing the C code
-
-Since the assembly code was optimized, for example by making use
-of the fact that a number multiplied by 3 and adding 1, is always even,
-the C code could be optimized as well.
-See the collatz.c source for the final version.
-
-The program runs in: 0m20,703
-making it faster again than the assembly version.
-This again is proof that the compiler is way more knowledgeable on assembly
-than I am.
-
 # What about Java
 
-I created a Java version from the C code.
-The program runs in: 0m24,369.
-Using: openjdk version "11.0.11" 2021-04-20
+I created a Java version from the C code (java/Collatz.java).
+The program runs in: 0m19,244s.
+Using: java version "17.0.6" 2023-01-17 LTS
 
 Not bad considering Java is interpreted (but uses a JIT).

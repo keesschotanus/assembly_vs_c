@@ -1,5 +1,9 @@
 .vscode/
 a.out
 collatz
+collatz-not-optimized
+collatz-optimized
+collatzp
+Collatz.class
 *.o
 
